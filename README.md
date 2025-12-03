@@ -1,279 +1,73 @@
-# E-Commerce - Projet DevSecOps
+# TP DevSecOps – Version vulnérable & version sécurisée
 
-## Description
+Ce dépôt contient deux versions d'une application e-commerce :
 
-Application e-commerce fullstack (Node.js + React) conçue pour l'apprentissage du DevSecOps.
+- **main** → version vulnérable  
+- **secure** → version corrigée
 
-### Stack Technique
-
-**Backend** :
-- Node.js 16+ / Express 4.x
-- Base de données in-memory (simulation)
-- Session management
-- JWT authentication
-
-**Frontend** :
-- React 17+
-- React Router
-- CSS moderne
-
-**DevOps** :
-- Docker & Docker Compose
-- GitHub Actions (CI/CD)
-- Outils de sécurité (Semgrep, Trivy, Gitleaks)
+L'objectif du TP est d’identifier les failles, les corriger et mettre en place un pipeline DevSecOps.
 
 ---
 
-## Objectifs Pédagogiques
+##  1. Branches du projet
 
-Ce projet permet d'apprendre à :
+- **main** : secrets en clair, eval(), routes non protégées, XSS, path traversal, etc.  
+- **secure** : backend, frontend et Docker corrigés (suppression des secrets, validation, sanitization, auth, etc.).
 
-1. ✅ **Identifier** les vulnérabilités de sécurité dans une application réelle
-2. ✅ **Analyser** le code avec des outils SAST/SCA
-3. ✅ **Corriger** les failles de sécurité avec les bonnes pratiques
-4. ✅ **Conteneuriser** une application de manière sécurisée
-5. ✅ **Mettre en place** un pipeline DevSecOps complet
+Détails :
+- Vulnérabilités → `VULNERABILITIES.md`
+- Corrections → `CORRECTIONS.md`
+- Analyse du pipeline → `SECURITY_PIPELINE.md`
 
 ---
 
-## Installation et Démarrage
+##  2. Lancer la version sécurisée
 
-### Prérequis
-
-- Node.js 18+
-- npm 9+
-- Docker & Docker Compose (optionnel)
-- Git
-
-### Installation Locale
-
-#### Backend
-
+### 1️ Cloner et passer sur secure
 ```bash
-# Naviguer dans le dossier backend
-cd backend
+git clone https://github.com/Nairooolf/vuln_ecommerce_tp.git
+cd vuln_ecommerce_tp
+git checkout secure
 
-# Installer les dépendances
-npm install
+2️ Créer le fichier .env dans backend/
 
-# Lancer le serveur
-npm start
-```
+JWT_SECRET=secret
+SESSION_SECRET=secret
+ADMIN_API_KEY=key
+STRIPE_SECRET_KEY=stripe
 
-Le backend sera accessible sur `http://localhost:5001`
+3️ Lancer en Docker
 
-#### Frontend
-
-```bash
-# Naviguer dans le dossier frontend
-cd frontend
-
-# Installer les dépendances
-npm install
-
-# Lancer l'application
-npm start
-```
-
-Le frontend sera accessible sur `http://localhost:3000`
-
-### Avec Docker Compose
-
-```bash
-# À la racine du projet
-docker compose up --build
-```
-
-Services disponibles :
-- Frontend : `http://localhost:3000`
-- Backend : `http://localhost:5001`
-
----
-
-## Structure du Projet
-
-```
-vuln-ecommerce/
-├── backend/
-│   ├── server.js              # Serveur Express
-│   ├── package.json           # Dépendances backend
-│   └── Dockerfile             # Image Docker backend
-├── frontend/
-│   ├── src/
-│   │   ├── App.js            # Composant principal React
-│   │   ├── App.css           # Styles
-│   │   ├── index.js          # Point d'entrée
-│   │   └── index.css         # Styles globaux
-│   ├── public/
-│   │   └── index.html        # HTML de base
-│   ├── package.json          # Dépendances React
-│   └── Dockerfile            # Image Docker frontend
-├── .github/
-│   └── workflows/
-│       └── security.yml      # Pipeline CI/CD DevSecOps
-├── docker-compose.yml        # Configuration Docker Compose
-├── .env.example              # Variables d'environnement (exemple)
-└── README.md
-```
-
----
-
-## Travail Demandé (Projet Étudiant)
-
-### Phase 1 : Analyse
-
-1. **Identifier les vulnérabilités**
-   - Utiliser les outils SAST/SCA fournis dans le pipeline
-   - Analyser le code manuellement
-   - Documenter chaque vulnérabilité trouvée
-   - Créer un fichier `VULNERABILITIES.md`
-
-2. **Analyser le pipeline DevSecOps**
-   - Comprendre le fichier `.github/workflows/security.yml`
-   - Exécuter le pipeline localement si possible
-   - Interpréter les résultats des scans
-
-### Phase 2 : Corrections
-
-3. **Corriger les vulnérabilités**
-   - Documenter les corrections dans `CORRECTIONS.md`
-   - Mettez les fichiers `server.js`, `App.js` `Dockerfile` `docker-compose.yml` avec les corrections dans la branch **secure** de votre repo
-
-4. **Documentation et présentation**
-   - README
-   - Rapport PDF
-   - Slides de présentation
-   - Démo du pipeline
-
----
-
-## 🛠️ Outils Recommandés
-
-### Analyse Statique (SAST)
-- **Semgrep** : Analyse de code avec règles personnalisables
-- **CodeQL** : Analyse profonde de GitHub
-- **ESLint** : Avec plugins de sécurité
-
-### Analyse des Dépendances (SCA)
-- **npm audit** : Intégré à npm
-- **Snyk** : Détection de vulnérabilités
-- **Trivy** : Scanner complet
-
-### Détection de Secrets
-- **Gitleaks** : Détection dans Git
-- **TruffleHog** : Recherche dans l'historique
-
-### Scan de Conteneurs
-- **Trivy** : Scanner Docker complet
-- **Grype** : Alternative à Trivy
-
----
-
-## 📊 Tests Rapides
-
-### Test de l'Application
-
-```bash
-# Démarrer l'application
 docker compose up --build
 
-# Dans un autre terminal, tester l'API
-curl http://localhost:5001/health
+    Frontend : http://localhost:3000
 
-# Accéder au frontend
-open http://localhost:3000
-```
+Backend : http://localhost:5001
+3. Pipeline de sécurité (GitHub Actions)
 
-### Scan Automatique
+Le workflow security.yml exécute automatiquement :
 
-```bash
-# Scan des dépendances
-cd backend && npm audit
-cd frontend && npm audit
+    Gitleaks → détecte les secrets
 
-# Scan avec Semgrep
-npx semgrep --config=auto .
+    Semgrep → analyse statique du code (SAST)
 
-# Scan Docker avec Trivy (si installé)
-docker build -t vuln-ecommerce-backend backend/
-trivy image vuln-ecommerce-backend
+    Trivy → scan des images Docker
 
-# Détection de secrets (si Docker disponible)
-docker run -v $(pwd):/path ghcr.io/gitleaks/gitleaks:latest detect --source="/path" -v
-```
+Le pipeline tourne sur main et secure.
+4. Contenu important du dépôt
 
----
+backend/      → serveur Node.js
+frontend/     → app React
+.github/      → pipeline CI/CD
+docker-compose.yml
+VULNERABILITIES.md
+CORRECTIONS.md
+SECURITY_PIPELINE.md
 
-## 📚 Ressources Complémentaires
+5. Objectif final
 
-### Documentation
-- [OWASP Top 10 2021](https://owasp.org/www-project-top-ten/)
-- [Node.js Security Best Practices](https://nodejs.org/en/docs/guides/security/)
-- [React Security](https://reactjs.org/docs/dom-elements.html)
-- [Docker Security](https://docs.docker.com/engine/security/)
+    Montrer la différence entre un projet vulnérable et sécurisé
 
-### Formation
-- [OWASP Juice Shop](https://owasp.org/www-project-juice-shop/) - Application vulnérable similaire
-- [PortSwigger Academy](https://portswigger.net/web-security) - Formation web security
-- [HackTheBox](https://www.hackthebox.com/) - Entraînement pratique
+    Comprendre l’apport d’un pipeline DevSecOps
 
-### Outils
-- [Semgrep Registry](https://semgrep.dev/explore) - Règles de sécurité
-- [Snyk Vulnerability DB](https://snyk.io/vuln/) - Base de données CVE
-- [OWASP Cheat Sheets](https://cheatsheetseries.owasp.org/) - Guides de sécurité
-
----
-
-## ✅ Checklist de Validation
-
-Avant de soumettre votre projet, vérifiez :
-
-### Code
-- [ ] Vulnérabilités identifiées et documentées
-- [ ] Corrections appliquées et testées
-- [ ] Secrets externalisés dans `.env`
-- [ ] `.env` dans `.gitignore`
-- [ ] Dépendances à jour (`npm audit` propre)
-
-### Docker
-- [ ] `Dockerfile.secure` créés (backend + frontend)
-- [ ] Images Alpine utilisées
-- [ ] Utilisateur non-root
-- [ ] Healthcheck configuré
-- [ ] Scan Trivy sans vulnérabilités CRITICAL
-
-### Pipeline
-- [ ] `.github/workflows/security.yml` compris et analysé
-- [ ] Résultats des scans interprétés
-- [ ] Corrections validées par les outils
-
-### Documentation
-- [ ] `VULNERABILITIES.md` complet
-- [ ] `CORRECTIONS.md` avec avant/après
-- [ ] README mis à jour
-- [ ] Rapport PDF
-- [ ] Slides de présentation
-
----
-
-## 🆘 Support
-
-### En cas de problème
-
-1. **Consultez d'abord** :
-   - Documentation des outils utilisés
-   - Issues GitHub du projet
-   - Ressources OWASP
-
-2. **Questions** :
-   - Contacter l'enseignant
-
-3. **Bugs** :
-   - Vérifier la version de Node.js (18+)
-   - Vérifier que les ports 3000 et 5001 sont libres
-   - Supprimer `node_modules` et réinstaller
-
----
-
-
-**Bon courage !**
+    Démontrer la sécurisation du backend, frontend et Docker

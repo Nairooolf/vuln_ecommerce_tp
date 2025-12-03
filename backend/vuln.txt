@@ -1,0 +1,117 @@
+florian  …/vuln-ecommerce/backend   main ✘?   v16.20.2  ♥ 16:47  npm audit
+# npm audit report
+
+body-parser  <=1.20.2
+Severity: high
+body-parser vulnerable to denial of service when url encoding is enabled - https://github.com/advisories/GHSA-qwcr-r2fm-qrc7
+Depends on vulnerable versions of qs
+fix available via `npm audit fix --force`
+Will install express@4.22.1, which is outside the stated dependency range
+node_modules/body-parser
+  express  <=4.21.0 || 5.0.0-alpha.1 - 5.0.0
+  Depends on vulnerable versions of body-parser
+  Depends on vulnerable versions of cookie
+  Depends on vulnerable versions of path-to-regexp
+  Depends on vulnerable versions of qs
+  Depends on vulnerable versions of send
+  Depends on vulnerable versions of serve-static
+  node_modules/express
+
+cookie  <0.7.0
+cookie accepts cookie name, path, and domain with out of bounds characters - https://github.com/advisories/GHSA-pxg6-pf52-xh8x
+fix available via `npm audit fix --force`
+Will install express@4.22.1, which is outside the stated dependency range
+node_modules/cookie
+  express-session  1.0.1 - 1.18.1
+  Depends on vulnerable versions of cookie
+  Depends on vulnerable versions of on-headers
+  node_modules/express-session
+
+
+got  <11.8.5
+Severity: moderate
+Got allows a redirect to a UNIX socket - https://github.com/advisories/GHSA-pfrx-2q88-qq97
+fix available via `npm audit fix --force`
+Will install nodemon@2.0.22, which is outside the stated dependency range
+node_modules/got
+  package-json  <=6.5.0
+  Depends on vulnerable versions of got
+  node_modules/package-json
+    latest-version  0.2.0 - 5.1.0
+    Depends on vulnerable versions of package-json
+    node_modules/latest-version
+      update-notifier  0.2.0 - 5.1.0
+      Depends on vulnerable versions of latest-version
+      node_modules/update-notifier
+        nodemon  1.3.5 - 2.0.16 || 2.0.18
+        Depends on vulnerable versions of update-notifier
+        node_modules/nodemon
+
+jsonwebtoken  <=8.5.1
+Severity: high
+jsonwebtoken unrestricted key type could lead to legacy keys usage  - https://github.com/advisories/GHSA-8cf7-32gw-wr33
+jsonwebtoken's insecure implementation of key retrieval function could lead to Forgeable Public/Private Tokens from RSA to HMAC - https://github.com/advisories/GHSA-hjrf-2m68-5959
+jsonwebtoken vulnerable to signature validation bypass due to insecure default algorithm in jwt.verify() - https://github.com/advisories/GHSA-qwph-4952-7xr6
+fix available via `npm audit fix --force`
+Will install jsonwebtoken@9.0.2, which is a breaking change
+node_modules/jsonwebtoken
+
+mongodb  3.6.0 - 3.6.9
+Severity: moderate
+MongoDB Driver may publish events containing authentication-related data - https://github.com/advisories/GHSA-vxvm-qww3-2fh7
+fix available via `npm audit fix --force`
+Will install mongoose@9.0.0, which is a breaking change
+node_modules/mongodb
+  mongoose  <=6.13.5
+  Depends on vulnerable versions of mongodb
+  Depends on vulnerable versions of mpath
+  node_modules/mongoose
+
+
+mpath  <0.8.4
+Severity: moderate
+Type confusion in mpath - https://github.com/advisories/GHSA-p92x-r36w-9395
+fix available via `npm audit fix --force`
+Will install mongoose@9.0.0, which is a breaking change
+node_modules/mpath
+
+on-headers  <1.1.0
+on-headers is vulnerable to http response header manipulation - https://github.com/advisories/GHSA-76c9-3jph-rj3q
+fix available via `npm audit fix --force`
+Will install express-session@1.18.2, which is outside the stated dependency range
+node_modules/on-headers
+
+path-to-regexp  <=0.1.11
+Severity: high
+path-to-regexp outputs backtracking regular expressions - https://github.com/advisories/GHSA-9wv6-86v2-598j
+path-to-regexp contains a ReDoS - https://github.com/advisories/GHSA-rhx6-c78j-4q9w
+fix available via `npm audit fix --force`
+Will install express@4.22.1, which is outside the stated dependency range
+node_modules/path-to-regexp
+
+qs  6.7.0 - 6.7.2
+Severity: high
+qs vulnerable to Prototype Pollution - https://github.com/advisories/GHSA-hrpp-h998-j3pp
+fix available via `npm audit fix --force`
+Will install express@4.22.1, which is outside the stated dependency range
+node_modules/qs
+
+send  <0.19.0
+send vulnerable to template injection that can lead to XSS - https://github.com/advisories/GHSA-m6fv-jmcg-4jfg
+fix available via `npm audit fix --force`
+Will install express@4.22.1, which is outside the stated dependency range
+node_modules/send
+  serve-static  <=1.16.0
+  Depends on vulnerable versions of send
+  node_modules/serve-static
+
+
+18 vulnerabilities (5 low, 7 moderate, 5 high, 1 critical)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+florian  …/vuln-ecommerce/backend   main ✘?   v16.20.2  ♥ 16:48  

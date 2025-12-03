@@ -28,7 +28,7 @@ Détails :
 git clone https://github.com/Nairooolf/vuln_ecommerce_tp.git
 cd vuln_ecommerce_tp
 git checkout secure
-
+```
 ---
 
 ### 2️ Créer le fichier .env dans backend/
@@ -41,9 +41,9 @@ STRIPE_SECRET_KEY=stripe
 ---
 
 ### 3️ Lancer en Docker
-
+```bash
 docker compose up --build
-
+```
     Frontend : http://localhost:3000
 
 Backend : http://localhost:5001

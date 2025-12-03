@@ -29,21 +29,21 @@ git clone https://github.com/Nairooolf/vuln_ecommerce_tp.git
 cd vuln_ecommerce_tp
 git checkout secure
 
-2️ Créer le fichier .env dans backend/
+### 2️ Créer le fichier .env dans backend/
 
 JWT_SECRET=secret
 SESSION_SECRET=secret
 ADMIN_API_KEY=key
 STRIPE_SECRET_KEY=stripe
 
-3️ Lancer en Docker
+### 3️ Lancer en Docker
 
 docker compose up --build
 
     Frontend : http://localhost:3000
 
 Backend : http://localhost:5001
-3. Pipeline de sécurité (GitHub Actions)
+## 3. Pipeline de sécurité (GitHub Actions)
 
 Le workflow security.yml exécute automatiquement :
 
@@ -54,7 +54,7 @@ Le workflow security.yml exécute automatiquement :
     Trivy → scan des images Docker
 
 Le pipeline tourne sur main et secure.
-4. Contenu important du dépôt
+## 4. Contenu important du dépôt
 
 backend/      → serveur Node.js
 frontend/     → app React
@@ -64,7 +64,7 @@ VULNERABILITIES.md
 CORRECTIONS.md
 SECURITY_PIPELINE.md
 
-5. Objectif final
+### 5. Objectif final
 
     Montrer la différence entre un projet vulnérable et sécurisé
 

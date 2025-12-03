@@ -14,7 +14,8 @@ dist/
 *.log
 
 CORRECTIONS.*
-# NOTE: .env devrait être ici mais on le laisse pour montrer la vulnérabilité
-.env
 *.sh
 *.kals.*
+
+# Secrets
+.env

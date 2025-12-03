@@ -1,403 +1,559 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import './App.css';
 
-const API_KEY = 'sk_live_41Hqp9K2eZvKYlo2C8xO3n4y5z6a7b8c9d0e1f2g3h4i5p';
-const API_URL = 'http://localhost:5001/api';
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5001';
+
+function decodeJwt(token) {
+  try {
+    const base64Payload = token.split('.')[1];
+    const jsonPayload = atob(base64Payload);
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    return null;
+  }
+}
 
 function App() {
-  const [user, setUser] = useState(null);
   const [products, setProducts] = useState([]);
-  const [cart, setCart] = useState([]);
-  const [view, setView] = useState('products');
+  const [filteredProducts, setFilteredProducts] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [reviews, setReviews] = useState([]);
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
-    
-    if (token && userData) {
-      setUser(JSON.parse(userData));
-    }
-    
-    loadProducts();
-  }, []);
+  const [authToken, setAuthToken] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
 
-  const loadProducts = async () => {
+  const [loginForm, setLoginForm] = useState({ username: '', password: '' });
+  const [registerForm, setRegisterForm] = useState({ username: '', email: '', password: '' });
+
+  const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' });
+  const [checkoutQuantity, setCheckoutQuantity] = useState(1);
+
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState(null);
+  const [error, setError] = useState(null);
+
+  // ----------------------------------
+  // Helpers
+  // ----------------------------------
+
+  const resetMessages = () => {
+    setMessage(null);
+    setError(null);
+  };
+
+  const authHeaders = () => {
+    if (!authToken) return {};
+    return { Authorization: `Bearer ${authToken}` };
+  };
+
+  // ----------------------------------
+  // API Calls
+  // ----------------------------------
+
+  const fetchProducts = async () => {
+    resetMessages();
+    setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/products`);
-      const data = await response.json();
+      const res = await fetch(`${API_BASE_URL}/api/products`);
+      if (!res.ok) {
+        throw new Error('Erreur lors du chargement des produits');
+      }
+      const data = await res.json();
       setProducts(data);
-    } catch (error) {
-      console.error('Erreur chargement produits:', error);
+      setFilteredProducts(data);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleSearch = async () => {
+  const fetchReviews = async (productId) => {
+    resetMessages();
     try {
-      const filtered = products.filter(p => {
-        try {
-
-          return eval(`p.name.toLowerCase().includes('${searchQuery}'.toLowerCase())`);
-        } catch(e) {
-          return false;
-        }
-      });
-      setProducts(filtered);
-    } catch (error) {
-      console.error('Erreur recherche:', error);
+      const res = await fetch(`${API_BASE_URL}/api/products/${productId}/reviews`);
+      if (!res.ok) {
+        throw new Error('Erreur lors du chargement des avis');
+      }
+      const data = await res.json();
+      setReviews(data || []);
+    } catch (e) {
+      setError(e.message);
     }
   };
+
+  const handleSearchChange = (e) => {
+    const value = e.target.value || '';
+    setSearchQuery(value);
+    const lower = value.toLowerCase();
+    const filtered = products.filter((p) =>
+      p.name.toLowerCase().includes(lower)
+    );
+    setFilteredProducts(filtered);
+  };
+
+  const handleSelectProduct = (product) => {
+    setSelectedProduct(product);
+    setCheckoutQuantity(1);
+    setReviewForm({ rating: 5, comment: '' });
+    fetchReviews(product.id);
+  };
+
+  const handleLoginChange = (e) => {
+    const { name, value } = e.target;
+    setLoginForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleRegisterChange = (e) => {
+    const { name, value } = e.target;
+    setRegisterForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleReviewChange = (e) => {
+    const { name, value } = e.target;
+    setReviewForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleCheckoutQuantityChange = (e) => {
+    const value = parseInt(e.target.value, 10);
+    if (Number.isNaN(value)) {
+      setCheckoutQuantity(1);
+      return;
+    }
+    setCheckoutQuantity(Math.max(1, value));
+  };
+
+  // ----------------------------------
+  // Auth
+  // ----------------------------------
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    const username = e.target.username.value;
-    const password = e.target.password.value;
+    resetMessages();
+
+    if (!loginForm.username || !loginForm.password) {
+      setError('Veuillez renseigner un nom d’utilisateur et un mot de passe.');
+      return;
+    }
 
     try {
-      const response = await fetch(`${API_URL}/login`, {
+      setLoading(true);
+      const res = await fetch(`${API_BASE_URL}/api/login`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-Key': API_KEY
-        },
-        body: JSON.stringify({ username, password })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(loginForm),
       });
 
-      const data = await response.json();
-
-      if (data.success) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        setUser(data.user);
-        setView('products');
-      } else {
-        alert('Identifiants incorrects');
+      if (!res.ok) {
+        throw new Error('Identifiants incorrects');
       }
-    } catch (error) {
-      console.error('Erreur login:', error);
+
+      const data = await res.json();
+      if (!data.token) {
+        throw new Error('Réponse de login invalide (token manquant)');
+      }
+
+      const payload = decodeJwt(data.token);
+      setAuthToken(data.token);
+      setCurrentUser(
+        payload
+          ? { id: payload.id, username: payload.username, role: payload.role }
+          : null
+      );
+      setMessage('Connexion réussie');
+    } catch (e) {
+      setError(e.message);
+      setAuthToken(null);
+      setCurrentUser(null);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleRegister = async (e) => {
     e.preventDefault();
-    const username = e.target.username.value;
-    const email = e.target.email.value;
-    const password = e.target.password.value;
+    resetMessages();
 
-    // Permet d'envoyer n'importe quoi au backend
-
-    try {
-      const response = await fetch(`${API_URL}/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, email, password })
-      });
-
-      const data = await response.json();
-      alert('Inscription réussie ! Vous pouvez maintenant vous connecter.');
-      setView('login');
-    } catch (error) {
-      console.error('Erreur inscription:', error);
-    }
-  };
-
-  const addToCart = (product) => {
-    setCart([...cart, product]);
-    alert('Produit ajouté au panier !');
-  };
-
-  const handleCheckout = async () => {
-    if (cart.length === 0) {
-      alert('Votre panier est vide');
+    if (!registerForm.username || !registerForm.email || !registerForm.password) {
+      setError('Veuillez remplir tous les champs pour créer un compte.');
       return;
     }
 
-    const creditCard = prompt('Entrez votre numéro de carte bancaire:');
-
-    if (!creditCard) return;
-
-    for (const product of cart) {
-      try {
-        const response = await fetch(`${API_URL}/checkout`, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          body: JSON.stringify({
-            userId: user.id,
-            productId: product.id,
-            quantity: 1,
-          })
-        });
-
-        const data = await response.json();
-      } catch (error) {
-        console.error('Erreur checkout:', error);
-      }
-    }
-
-    alert('Commande validée !');
-    setCart([]);
-  };
-
-  const ProductCard = ({ product }) => {
-    return (
-      <div className="product-card">
-        <h3 dangerouslySetInnerHTML={{ __html: product.name }}></h3>
-        <p className="price">{product.price}€</p>
-        <p>Stock: {product.stock}</p>
-        <button onClick={() => addToCart(product)}>Ajouter au panier</button>
-        <button onClick={() => viewProductDetails(product)}>Voir détails & Avis</button>
-      </div>
-    );
-  };
-
-  const loadProductReviews = async (productId) => {
     try {
-      const response = await fetch(`${API_URL}/products/${productId}/reviews`);
-      const data = await response.json();
-      setReviews(data);
-    } catch (error) {
-      console.error('Erreur chargement reviews:', error);
-    }
-  };
-
-  const viewProductDetails = (product) => {
-    setSelectedProduct(product);
-    loadProductReviews(product.id);
-    setView('product-details');
-  };
-
-  const handleAddReview = async (productId) => {
-    const rating = prompt('Note (1-5):');
-    const comment = prompt('Votre avis:');
-
-    if (!rating || !comment) return;
-
-    try {
-      const response = await fetch(`${API_URL}/products/${productId}/review`, {
+      setLoading(true);
+      const res = await fetch(`${API_BASE_URL}/api/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          rating: parseInt(rating),
-        })
+        body: JSON.stringify(registerForm),
       });
 
-      const data = await response.json();
-      alert('Avis ajouté !');
-      // Recharger les reviews
-      loadProductReviews(productId);
-    } catch (error) {
-      console.error('Erreur ajout avis:', error);
+      if (!res.ok) {
+        throw new Error('Erreur lors de la création du compte');
+      }
+
+      const data = await res.json();
+      setMessage(data.message || 'Compte créé avec succès, vous pouvez vous connecter.');
+      setRegisterForm({ username: '', email: '', password: '' });
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
     }
   };
 
+  const handleLogout = () => {
+    resetMessages();
+    setAuthToken(null);
+    setCurrentUser(null);
+    setMessage('Déconnexion effectuée.');
+  };
+
+  // ----------------------------------
+  // Reviews & Checkout
+  // ----------------------------------
+
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+    resetMessages();
+
+    if (!selectedProduct) {
+      setError('Veuillez sélectionner un produit avant de laisser un avis.');
+      return;
+    }
+
+    if (!reviewForm.comment.trim()) {
+      setError('Le commentaire ne peut pas être vide.');
+      return;
+    }
+
+    const rating = Number(reviewForm.rating);
+    if (Number.isNaN(rating) || rating < 1 || rating > 5) {
+      setError('La note doit être comprise entre 1 et 5.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_BASE_URL}/api/products/${selectedProduct.id}/review`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeaders(),
+        },
+        body: JSON.stringify({
+          rating,
+          comment: reviewForm.comment.trim(),
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Erreur lors de l’envoi de l’avis.');
+      }
+
+      const data = await res.json();
+      setMessage('Avis envoyé avec succès.');
+      setReviewForm({ rating: 5, comment: '' });
+
+      // Rafraîchir la liste des avis
+      if (data.review && data.review.productId) {
+        fetchReviews(data.review.productId);
+      } else if (selectedProduct) {
+        fetchReviews(selectedProduct.id);
+      }
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCheckout = async () => {
+    resetMessages();
+
+    if (!authToken || !currentUser) {
+      setError('Vous devez être connecté pour passer une commande.');
+      return;
+    }
+
+    if (!selectedProduct) {
+      setError('Veuillez sélectionner un produit.');
+      return;
+    }
+
+    const quantity = Number(checkoutQuantity);
+    if (Number.isNaN(quantity) || quantity <= 0) {
+      setError('La quantité doit être un entier strictement positif.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_BASE_URL}/api/checkout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeaders(),
+        },
+        body: JSON.stringify({
+          userId: currentUser.id,
+          productId: selectedProduct.id,
+          quantity,
+          // On ne transmet PAS de numéro de carte ici.
+          // Supposé : backend utilise un PSP externe ou un token.
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        const msg = data.message || 'Erreur lors du checkout.';
+        throw new Error(msg);
+      }
+
+      const data = await res.json();
+      setMessage(`Commande validée. Total: ${data.order?.total ?? 'N/A'} €`);
+      fetchProducts(); // met à jour les stocks
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ----------------------------------
+  // Initial load
+  // ----------------------------------
+
   useEffect(() => {
-    // Logs qui exposent des infos sensibles
-    console.log('User data:', user);
-    console.log('API Key:', API_KEY);
-    console.log('JWT Token:', localStorage.getItem('token'));
-  }, [user]);
+    fetchProducts();
+  }, []);
+
+  // ----------------------------------
+  // Render
+  // ----------------------------------
 
   return (
     <div className="App">
       <header className="App-header">
-        <h1>🛒 E-Commerce Vulnérable</h1>
-        <nav>
-          <button onClick={() => setView('products')}>Produits</button>
-          {user ? (
-            <>
-              <button onClick={() => setView('cart')}>
-                Panier ({cart.length})
-              </button>
-              <button onClick={() => setView('profile')}>
-                Profil ({user.username})
-              </button>
-              <button onClick={() => {
-                setUser(null);
-                localStorage.clear();
-                setView('products');
-              }}>
-                Déconnexion
-              </button>
-            </>
-          ) : (
-            <>
-              <button onClick={() => setView('login')}>Connexion</button>
-              <button onClick={() => setView('register')}>Inscription</button>
-            </>
-          )}
-        </nav>
+        <h1>E-Commerce sécurisé (DevSecOps)</h1>
+        <p>Version frontend durcie (pas de secrets, pas d&apos;eval, pas de XSS).</p>
       </header>
 
-      <main>
-        {view === 'products' && (
-          <div className="products-view">
-            <h2>Nos Produits</h2>
-            
-            <div className="search-bar">
+      <main className="App-main">
+        {/* Messages globaux */}
+        {(message || error || loading) && (
+          <div className="status-bar">
+            {loading && <div className="status loading">Chargement...</div>}
+            {message && <div className="status success">{message}</div>}
+            {error && <div className="status error">{error}</div>}
+          </div>
+        )}
+
+        {/* Auth / Profil */}
+        <section className="panel auth-panel">
+          <h2>Authentification</h2>
+
+          {currentUser ? (
+            <div className="auth-info">
+              <p>
+                Connecté en tant que <strong>{currentUser.username}</strong>
+                {currentUser.role && (
+                  <>
+                    {' '}
+                    (<em>{currentUser.role}</em>)
+                  </>
+                )}
+              </p>
+              <button type="button" onClick={handleLogout}>
+                Se déconnecter
+              </button>
+            </div>
+          ) : (
+            <div className="auth-forms">
+              <form onSubmit={handleLogin} className="auth-form">
+                <h3>Connexion</h3>
+                <label>
+                  Nom d&apos;utilisateur
+                  <input
+                    type="text"
+                    name="username"
+                    value={loginForm.username}
+                    onChange={handleLoginChange}
+                    autoComplete="username"
+                  />
+                </label>
+                <label>
+                  Mot de passe
+                  <input
+                    type="password"
+                    name="password"
+                    value={loginForm.password}
+                    onChange={handleLoginChange}
+                    autoComplete="current-password"
+                  />
+                </label>
+                <button type="submit" disabled={loading}>
+                  Se connecter
+                </button>
+              </form>
+
+              <form onSubmit={handleRegister} className="auth-form">
+                <h3>Créer un compte</h3>
+                <label>
+                  Nom d&apos;utilisateur
+                  <input
+                    type="text"
+                    name="username"
+                    value={registerForm.username}
+                    onChange={handleRegisterChange}
+                  />
+                </label>
+                <label>
+                  Email
+                  <input
+                    type="email"
+                    name="email"
+                    value={registerForm.email}
+                    onChange={handleRegisterChange}
+                  />
+                </label>
+                <label>
+                  Mot de passe
+                  <input
+                    type="password"
+                    name="password"
+                    value={registerForm.password}
+                    onChange={handleRegisterChange}
+                  />
+                </label>
+                <button type="submit" disabled={loading}>
+                  S&apos;inscrire
+                </button>
+              </form>
+            </div>
+          )}
+        </section>
+
+        {/* Produits & recherche */}
+        <section className="panel products-panel">
+          <h2>Produits</h2>
+
+          <div className="search-bar">
+            <label>
+              Recherche produits
               <input
                 type="text"
-                placeholder="Rechercher un produit..."
+                placeholder="Rechercher par nom..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={handleSearchChange}
               />
-              <button onClick={handleSearch}>Rechercher</button>
-              <button onClick={loadProducts}>Réinitialiser</button>
-            </div>
-
-            <div className="products-grid">
-              {products.map(product => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
+            </label>
           </div>
-        )}
 
-        {view === 'login' && (
-          <div className="form-container">
-            <h2>Connexion</h2>
-            <form onSubmit={handleLogin}>
-              <input name="username" placeholder="Nom d'utilisateur" required />
-              <input name="password" type="password" placeholder="Mot de passe" required />
-              <button type="submit">Se connecter</button>
-            </form>
-            <p>
-              Pas de compte ? <button onClick={() => setView('register')}>S'inscrire</button>
-            </p>
-            <p style={{fontSize: '0.8em', color: '#666'}}>
-              Test: admin / admin123
-            </p>
-          </div>
-        )}
-
-        {view === 'register' && (
-          <div className="form-container">
-            <h2>Inscription</h2>
-            <form onSubmit={handleRegister}>
-              <input name="username" placeholder="Nom d'utilisateur" required />
-              <input name="email" type="email" placeholder="Email" required />
-              <input name="password" type="password" placeholder="Mot de passe" required />
-              <button type="submit">S'inscrire</button>
-            </form>
-          </div>
-        )}
-
-        {view === 'cart' && (
-          <div className="cart-view">
-            <h2>Mon Panier</h2>
-            {cart.length === 0 ? (
-              <p>Votre panier est vide</p>
-            ) : (
-              <>
-                <ul>
-                  {cart.map((item, index) => (
-                    <li key={index}>
-                      {item.name} - {item.price}€
-                    </li>
-                  ))}
-                </ul>
-                <p>Total: {cart.reduce((sum, item) => sum + item.price, 0)}€</p>
-                <button onClick={handleCheckout}>Payer</button>
-              </>
-            )}
-          </div>
-        )}
-
-        {view === 'profile' && user && (
-          <div className="profile-view">
-            <h2>Mon Profil</h2>
-            <pre style={{textAlign: 'left', background: '#f5f5f5', padding: '20px'}}>
-              {JSON.stringify(user, null, 2)}
-            </pre>
-
-            <div style={{marginTop: '20px'}}>
-              <input
-                id="userId"
-                type="number"
-                placeholder="ID utilisateur"
-                style={{marginRight: '10px'}}
-              />
-              <button onClick={async () => {
-                const userId = document.getElementById('userId').value;
-                const response = await fetch(`${API_URL}/users/${userId}`);
-                const data = await response.json();
-                alert(JSON.stringify(data, null, 2));
-              }}>
-                Voir profil
-              </button>
-            </div>
-          </div>
-        )}
-
-        {view === 'product-details' && selectedProduct && (
-          <div className="product-details-view">
-            <button onClick={() => setView('products')} style={{marginBottom: '20px'}}>
-              ← Retour aux produits
-            </button>
-
-            <div className="product-details-card">
-              <h2 dangerouslySetInnerHTML={{ __html: selectedProduct.name }}></h2>
-              <p className="price" style={{fontSize: '2em', color: '#007bff', margin: '20px 0'}}>
-                {selectedProduct.price}€
-              </p>
-              <p><strong>Catégorie:</strong> {selectedProduct.category}</p>
-              <p><strong>Stock disponible:</strong> {selectedProduct.stock}</p>
-              <button
-                onClick={() => addToCart(selectedProduct)}
-                style={{marginTop: '20px', padding: '15px 30px', fontSize: '18px'}}
+          <div className="products-list">
+            {filteredProducts.length === 0 && <p>Aucun produit trouvé.</p>}
+            {filteredProducts.map((product) => (
+              <div
+                key={product.id}
+                className={`product-card ${
+                  selectedProduct && selectedProduct.id === product.id ? 'selected' : ''
+                }`}
+                onClick={() => handleSelectProduct(product)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSelectProduct(product);
+                }}
               >
-                Ajouter au panier
-              </button>
-            </div>
+                <h3>{product.name}</h3>
+                <p>Catégorie : {product.category}</p>
+                <p>Prix : {product.price} €</p>
+                <p>Stock : {product.stock}</p>
+              </div>
+            ))}
+          </div>
+        </section>
 
-            <div className="reviews-section" style={{marginTop: '40px'}}>
-              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                <h3>Avis clients ({reviews.length})</h3>
-                <button onClick={() => handleAddReview(selectedProduct.id)}>
-                  ✍️ Laisser un avis
+        {/* Détails produit, avis, checkout */}
+        <section className="panel details-panel">
+          <h2>Détails & Avis</h2>
+
+          {!selectedProduct && <p>Sélectionnez un produit dans la liste.</p>}
+
+          {selectedProduct && (
+            <>
+              <div className="product-details">
+                <h3>{selectedProduct.name}</h3>
+                <p>Catégorie : {selectedProduct.category}</p>
+                <p>Prix : {selectedProduct.price} €</p>
+                <p>Stock disponible : {selectedProduct.stock}</p>
+              </div>
+
+              <div className="checkout-section">
+                <h3>Commander ce produit</h3>
+                <label>
+                  Quantité
+                  <input
+                    type="number"
+                    min="1"
+                    value={checkoutQuantity}
+                    onChange={handleCheckoutQuantityChange}
+                  />
+                </label>
+                <button type="button" onClick={handleCheckout} disabled={loading}>
+                  Valider la commande
                 </button>
               </div>
 
-              {reviews.length === 0 ? (
-                <p style={{textAlign: 'center', color: '#666', marginTop: '30px'}}>
-                  Aucun avis pour le moment. Soyez le premier à donner votre avis !
-                </p>
-              ) : (
-                <div className="reviews-list">
+              <div className="reviews-section">
+                <h3>Avis</h3>
+                {(!reviews || reviews.length === 0) && (
+                  <p>Aucun avis pour ce produit pour l&apos;instant.</p>
+                )}
+                <ul className="reviews-list">
                   {reviews.map((review) => (
-                    <div key={review.id} className="review-card">
-                      <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '10px'}}>
-                        <div className="rating">
-                          {'⭐'.repeat(review.rating)}
-                          <span style={{color: '#999', marginLeft: '10px'}}>
-                            {review.rating}/5
-                          </span>
-                        </div>
-                        <span style={{color: '#999', fontSize: '0.9em'}}>
-                          {new Date(review.date).toLocaleDateString('fr-FR')}
-                        </span>
-                      </div>
-                      <div
-                        className="review-comment"
-                        dangerouslySetInnerHTML={{ __html: review.comment }}
-                      />
-                    </div>
+                    <li key={review.id} className="review-item">
+                      <strong>Note : {review.rating}/5</strong>
+                      <p>{review.comment}</p>
+                      <span className="review-date">
+                        {review.date ? new Date(review.date).toLocaleString() : ''}
+                      </span>
+                    </li>
                   ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </main>
+                </ul>
 
-      <footer>
-        <p>Application avec vulnérabilités intentionnelles</p>
-        <p>Projet pédagogique DevSecOps</p>
-      </footer>
+                <form onSubmit={handleSubmitReview} className="review-form">
+                  <h4>Laisser un avis</h4>
+                  <label>
+                    Note (1-5)
+                    <input
+                      type="number"
+                      name="rating"
+                      min="1"
+                      max="5"
+                      value={reviewForm.rating}
+                      onChange={handleReviewChange}
+                    />
+                  </label>
+                  <label>
+                    Commentaire
+                    <textarea
+                      name="comment"
+                      value={reviewForm.comment}
+                      onChange={handleReviewChange}
+                      rows={3}
+                    />
+                  </label>
+                  <button type="submit" disabled={loading}>
+                    Envoyer l&apos;avis
+                  </button>
+                </form>
+              </div>
+            </>
+          )}
+        </section>
+      </main>
     </div>
   );
 }

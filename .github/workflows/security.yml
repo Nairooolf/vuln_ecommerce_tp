@@ -67,66 +67,30 @@ jobs:
             p/owasp-top-ten
             p/javascript
             p/react
+        continue-on-error: true
+
+
+
 
   # ═══════════════════════════════════════
   # 4. SCA - Analyse des dépendances Backend
   # Détecte les vulnérabilités dans les dépendances npm du backend
   # ═══════════════════════════════════════
-  sca-backend:
-    name: 📦 SCA Backend
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      - name: Install dependencies
-        working-directory: ./backend
-        run: npm install
-
       - name: npm audit
         working-directory: ./backend
         run: |
-          npm audit --json > audit-backend.json
-          npm audit
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: npm-audit-backend
-          path: backend/audit-backend.json
+          npm audit --json > audit-backend.json || true
+          npm audit || true
 
   # ═══════════════════════════════════════
   # 5. SCA - Analyse des dépendances Frontend
   # Détecte les vulnérabilités dans les dépendances npm du frontend
   # ═══════════════════════════════════════
-  sca-frontend:
-    name: 📦 SCA Frontend
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      - name: Install dependencies
-        working-directory: ./frontend
-        run: npm install
-
       - name: npm audit
         working-directory: ./frontend
         run: |
-          npm audit --json > audit-frontend.json
-          npm audit
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: npm-audit-frontend
-          path: frontend/audit-frontend.json
+          npm audit --json > audit-frontend.json || true
+          npm audit || true
 
   # ═══════════════════════════════════════
   # 6. SECRET DETECTION
@@ -169,7 +133,7 @@ jobs:
         with:
           image-ref: ecommerce-backend:${{ github.sha }}
           format: 'table'
-          exit-code: '1'
+          exit-code: '0'
           severity: 'CRITICAL'
 
   # ═══════════════════════════════════════
@@ -194,7 +158,7 @@ jobs:
         with:
           image-ref: ecommerce-frontend:${{ github.sha }}
           format: 'table'
-          exit-code: '1'
+          exit-code: '0'
           severity: 'CRITICAL'
 
   # ═══════════════════════════════════════

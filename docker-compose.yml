@@ -1,48 +1,32 @@
-services:
-  # ═══════════════════════════════════════
-  # BASE DE DONNÉES MONGODB
-  # ═══════════════════════════════════════
-  mongodb:
-    image: mongo:5.0
-    container_name: ecommerce-mongodb
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
+version: "3.9"
 
-  # ═══════════════════════════════════════
-  # BACKEND API
-  # ═══════════════════════════════════════
+services:
   backend:
-    build: ./backend
-    container_name: ecommerce-backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: secure-backend
+    environment:
+      NODE_ENV: "production"
+      PORT: 5001
+      JWT_SECRET: ${JWT_SECRET:-jwt_secret_example_secure}
+      SESSION_SECRET: ${SESSION_SECRET:-session_secret_example_secure}
+      ADMIN_API_KEY: ${ADMIN_API_KEY:-admin_api_key_example}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-stripe_key_example}
+      CORS_ALLOWED_ORIGINS: "http://localhost:3000"
     ports:
       - "5001:5001"
-    depends_on:
-      - mongodb
-    environment:
-      - NODE_ENV=development
-      - JWT_SECRET=my-super-secret-jwt-key-12345
-      - SESSION_SECRET=my-session-secret-key
-      - MONGODB_URI=mongodb://mongodb:27017/ecommerce
+    restart: unless-stopped
 
-  # ═══════════════════════════════════════
-  # FRONTEND REACT
-  # ═══════════════════════════════════════
   frontend:
-    build: ./frontend
-    container_name: ecommerce-frontend
-    ports:
-      - "3000:3000"
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: secure-frontend
+    environment:
+      REACT_APP_API_BASE_URL: "http://localhost:5001"
     depends_on:
       - backend
-    environment:
-      - REACT_APP_API_URL=http://localhost:5001
-      - REACT_APP_API_KEY=frontend-api-key-123456
-
-# ═══════════════════════════════════════
-# VOLUMES
-# ═══════════════════════════════════════
-volumes:
-  mongodb_data:
-    driver: local
+    ports:
+      - "3000:80"
+    restart: unless-stopped

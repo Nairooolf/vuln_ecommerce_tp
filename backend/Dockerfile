@@ -1,17 +1,26 @@
-# Dockerfile NON SÉCURISÉ - Backend
-FROM node:16
+# ============================
+# Backend - Dockerfile (SECURE)
+# ============================
+
+FROM node:18-alpine AS build
 
 WORKDIR /app
 
+# Installer uniquement les dépendances nécessaires
+COPY package*.json ./
+RUN npm ci --only=production
+
+# Copier le code backend
 COPY . .
 
-RUN npm install
+# Créer un utilisateur non-root
+RUN addgroup -S nodegroup && adduser -S nodeuser -G nodegroup
+USER nodeuser
 
 EXPOSE 5001
 
-
-ENV NODE_ENV=production
-ENV JWT_SECRET=my-super-secret-jwt-key-12345
-ENV SESSION_SECRET=my-session-secret-key
+# Healthcheck API
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+  CMD wget -qO- http://localhost:5001/health || exit 1
 
 CMD ["node", "server.js"]
